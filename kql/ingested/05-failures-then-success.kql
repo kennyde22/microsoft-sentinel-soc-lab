@@ -1,0 +1,7 @@
+let Auth = SimulatedWindowsAuth_CL
+| where TimeGenerated between (datetime(2026-11-10) .. datetime(2026-11-11));
+Auth | where EventID == 4624 | project Account, IpAddress, Computer, SuccessTime=TimeGenerated
+| join kind=inner (Auth | where EventID == 4625 | project Account, IpAddress, Computer, FailureTime=TimeGenerated) on Account, IpAddress, Computer
+| where FailureTime < SuccessTime and FailureTime >= SuccessTime - 15m
+| summarize Failures=count(), FirstFailure=min(FailureTime), LastFailure=max(FailureTime) by Account, IpAddress, Computer, SuccessTime
+| where Failures >= 5

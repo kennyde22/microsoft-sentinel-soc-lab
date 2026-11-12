@@ -1,0 +1,3 @@
+SimulatedWindowsAuth_CL
+| where TimeGenerated between (datetime(2026-11-10) .. datetime(2026-11-11))
+| summarize Events=count() by EventID | order by EventID asc

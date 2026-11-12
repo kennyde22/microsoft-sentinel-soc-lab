@@ -1,0 +1,7 @@
+SimulatedWindowsAuth_CL
+| where TimeGenerated between (datetime(2026-11-10) .. datetime(2026-11-11))
+| extend RowHash=hash_sha256(tostring(pack_array(strcat(replace_string(format_datetime(TimeGenerated,'yyyy-MM-dd HH:mm:ss.ffffff'),' ','T'),'Z'),Computer,EventID,Activity,Account,AccountType,LogonType,IpAddress,WorkstationName,Status,SubStatus,IsSimulated,Scenario)))
+| order by RowHash asc
+| summarize Total=count(), Unique=array_length(make_set(RowHash)), Success=countif(EventID==4624), Failure=countif(EventID==4625), Rows=make_list(RowHash)
+| extend IndexedHash=hash_sha256(strcat_array(array_sort_asc(Rows),'|')), SourceHash='487a54c8d83ea3d8845f189d31b0b5058f0794057fe9f4414f37421790a0d6b5'
+| project Total, Unique, Success, Failure, IndexedHash, SourceHash, ExactMatch=IndexedHash==SourceHash

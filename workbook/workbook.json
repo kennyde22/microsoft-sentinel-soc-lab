@@ -1,0 +1,80 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "name": "Overview",
+      "content": {
+        "json": "# SOC monitoring | Windows authentication\nSimulated lab telemetry · November 10, 2026 UTC\n\nEvents 4624 and 4625 show successful and failed Windows logons. The final panel correlates eight or more failures in the 15 minutes before a success on the same account, source IP, and destination.\n\nThe trend is grouped by UTC event time. The chart axis may display your browser time zone."
+      }
+    },
+    {
+      "type": 3,
+      "name": "auth-query-1",
+      "content": {
+        "version": "KqlItem/1.0",
+        "title": "Authentication totals",
+        "query": "SimulatedWindowsAuth_CL\n| where TimeGenerated >= datetime(2026-11-10) and TimeGenerated < datetime(2026-11-11)\n| where IsSimulated == true and EventID in (4624, 4625)\n| summarize Total=count(), Successful=countif(EventID == 4624), Failed=countif(EventID == 4625)",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 2592000000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      }
+    },
+    {
+      "type": 3,
+      "name": "auth-query-2",
+      "content": {
+        "version": "KqlItem/1.0",
+        "title": "Authentication trends · 30-minute UTC buckets",
+        "query": "SimulatedWindowsAuth_CL\n| where TimeGenerated >= datetime(2026-11-10) and TimeGenerated < datetime(2026-11-11)\n| where IsSimulated == true and EventID in (4624, 4625)\n| summarize Successful=countif(EventID == 4624), Failed=countif(EventID == 4625) by bin(TimeGenerated, 30m)\n| order by TimeGenerated asc",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 2592000000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      }
+    },
+    {
+      "type": 3,
+      "name": "auth-query-3",
+      "content": {
+        "version": "KqlItem/1.0",
+        "title": "Failed logons by account",
+        "query": "SimulatedWindowsAuth_CL\n| where TimeGenerated >= datetime(2026-11-10) and TimeGenerated < datetime(2026-11-11)\n| where IsSimulated == true and EventID in (4624, 4625)\n| where EventID == 4625\n| summarize Failed=count() by Account\n| order by Failed desc, Account asc",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 2592000000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "barchart"
+      }
+    },
+    {
+      "type": 3,
+      "name": "auth-query-4",
+      "content": {
+        "version": "KqlItem/1.0",
+        "title": "Eight or more failures followed by success",
+        "query": "let Auth = SimulatedWindowsAuth_CL\n| where TimeGenerated >= datetime(2026-11-10) and TimeGenerated < datetime(2026-11-11)\n| where IsSimulated == true and EventID in (4624, 4625) | where IsSimulated == true and EventID in (4624,4625) | where isnotempty(Account) and isnotempty(IpAddress) and isnotempty(Computer);\nAuth | where EventID == 4624 | project Account, IpAddress, Computer, SuccessTime=TimeGenerated\n| join kind=inner (Auth | where EventID == 4625 | project Account, IpAddress, Computer, FailureTime=TimeGenerated) on Account, IpAddress, Computer\n| where FailureTime < SuccessTime and FailureTime >= SuccessTime - 15m\n| summarize Failures=count(), FirstFailure=min(FailureTime), LastFailure=max(FailureTime) by Account, IpAddress, Computer, SuccessTime\n| where Failures >= 8\n| extend TimeGenerated=SuccessTime\n| project Account, SourceIP=IpAddress, Destination=Computer, Failures, FirstFailureUTC=format_datetime(FirstFailure,'yyyy-MM-dd HH:mm:ss.fff'), LastFailureUTC=format_datetime(LastFailure,'yyyy-MM-dd HH:mm:ss.fff'), SuccessUTC=format_datetime(SuccessTime,'yyyy-MM-dd HH:mm:ss.fff')",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 2592000000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      }
+    }
+  ],
+  "isLocked": false,
+  "styleSettings": {},
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "fallbackResourceIds": []
+}
